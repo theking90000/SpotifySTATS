@@ -59,3 +59,39 @@
     {% endfor %}
   </tbody>
 </table>
+
+<h4>Top 10 tracks by playtime</h4>
+
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Track</th>
+      <th>Artist</th>
+      <th>Playtime</th>
+      <th>Playcount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for track, count, playtime, artist, id in top_playtime %}
+    <tr>
+      <td>
+        <a href="/track/{{ id }}">
+          <img
+            height="32"
+            width="32"
+            src="/res/loader.gif"
+            alt="Loading..."
+            data-cover="{{ id }}"
+          />
+          {{ track }}
+        </a>
+      </td>
+      <td>
+        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
+      </td>
+      <td>{{ playtime }}</td>
+      <td>{{ count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

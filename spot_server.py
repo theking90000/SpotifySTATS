@@ -206,11 +206,28 @@ def insights():
             tt[3],
             tt[4]
         ))
+    
+    tc = int(request.args.get('top', 10))
+    # top X tracks by play count
+    c = db.cursor()
+    c.execute('SELECT master_metadata_track_name, count(*), sum(ms_played) as c, master_metadata_album_artist_name, spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY spotify_track_uri ORDER BY c DESC LIMIT ?', (f, t, tc))
+    top_playtime = c.fetchall()
+
+    t_playtime = []
+    for tt in top_playtime:
+        t_playtime.append((
+            tt[0],
+            tt[1],
+            format_duration(tt[2]/1000, 'm'),
+            tt[3],
+            tt[4]
+        ))
 
     return render_template('index.html', content='_insights.html',
                            years=years, year=is_year, f=f, t=t,
                            count=count, playtime=playtime, playtime_raw=playtime_raw,
-                           tc=tc, top_playcount=t_playcount)
+                           tc=tc, top_playcount=t_playcount,
+                           top_playtime=t_playtime)
 
 if __name__ == '__main__':
     # Check if the no-api flag is set

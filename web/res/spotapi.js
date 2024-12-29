@@ -35,7 +35,8 @@ $(document).ready(async () => {
       if (i < p || i >= p + 50) return;
       const d = data.tracks[i - p];
       if (!d.album) return;
-      const lowRes = d.album.images.find((x) => x.width === 64);
+      const lowRes =
+        d.album.images.find((x) => x.width === 64) || d.album.images[0];
       if (lowRes) $(img).attr("src", lowRes.url).attr("alt", data.name);
       else {
       }

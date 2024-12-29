@@ -82,6 +82,23 @@ def get_full_year(f, t):
         b = t.split('-')[0]
 
         return int(a) if a == b else None
+    
+def get_ft():
+    db = get_db()
+    c = db.cursor()
+    c.execute("SELECT strftime('%Y', ts) as year from history GROUP BY year")
+    years = [int(a[0]) for a in c.fetchall()]
+
+    f = request.args.get('from', None)
+    t = request.args.get('to', None)
+    is_year = get_full_year(f, t)
+    m, M = get_minmax_ts()
+    if f is None:
+        f = m
+    if t is None:
+        t = M
+
+    return f, t, is_year, years
 
 
 @app.route('/')
@@ -281,6 +298,57 @@ def insights():
                            tc=tc, top_playcount=t_playcount,
                            top_playtime=t_playtime, top_a_playcount=a_playcount,
                            top_a_playtime=a_playtime)
+
+@app.route('/track/<id>')
+def gettrack(id):
+    db = get_db()
+    c = db.cursor()
+    c.execute('SELECT ts, master_metadata_track_name, master_metadata_album_artist_name, count(*), spotify_track_uri FROM history WHERE spotify_track_uri=?', (id,))
+
+    history = []
+    for h in c.fetchall():
+        history.append((
+            datetime.fromisoformat(h[0][:-1]),
+            h[1],
+            h[2],
+            h[3],
+            #format_duration(h[4]/1000, 'm'),
+            h[4]
+        ))
+
+    title = history[0][1]
+
+    c.execute('SELECT count(*), sum(ms_played) FROM history WHERE spotify_track_uri=?', (id,))
+    tcount, played = c.fetchone()
+
+    return render_template('index.html', content='_track.html', history=history, id=id, title=title,
+                           count=tcount, played=format_duration(played/1000, 'm'))
+
+
+@app.route('/search')
+def search():
+    query = request.args.get('query', '')
+    offset = int(request.args.get('offset', 0))
+    limit = int(request.args.get('limit', 100))
+
+    f, t, is_year, years = get_ft()
+
+    db = get_db()
+    results = []
+    if query != '':
+        c = db.cursor()
+        c.execute('SELECT  master_metadata_track_name, master_metadata_album_artist_name, count(*) as c, spotify_track_uri FROM history WHERE (master_metadata_track_name LIKE "%" || ? || "%" OR master_metadata_album_artist_name LIKE "%" || ? || "%") AND ts >= ? AND ts <= ? GROUP BY spotify_track_uri ORDER BY c DESC LIMIT ? OFFSET ?', (query, query, f, t, limit, offset))
+        for r in c.fetchall():
+            results.append((
+               r[0],
+                r[1],
+                r[2],
+                r[3]
+            ))
+
+    return render_template('index.html', content='_search.html', query=query,
+                           years=years, year=is_year, f=f, t=t,
+                           results=results, offset=offset, limit=limit)
 
 if __name__ == '__main__':
     # Check if the no-api flag is set

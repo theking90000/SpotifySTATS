@@ -1,0 +1,63 @@
+<div class="d-flex flex-row justify-content-between">
+  <h2>Search</h2>
+  <div class="button-row">
+    {% for y in years %}
+    <a
+      href="?from={{ y }}-01-01T00:00:00Z&to={{ y }}-12-31T23:59:59Z&query={{ query }}"
+    >
+      <button class="btn btn-primary me-2 {% if y == year %}active{% endif %}">
+        {{ y }}
+      </button>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<form action="/search" method="get" class="form-group">
+  <input
+    type="text"
+    id="query"
+    name="query"
+    class="form-control"
+    required
+    autocomplete="false"
+    value="{{ query }}"
+  />
+
+  <input type="hidden" name="from" value="{{ f }}" />
+  <input type="hidden" name="to" value="{{ t }}" />
+
+  <button type="submit" class="btn btn-primary mt-2">Search</button>
+</form>
+
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Track</th>
+      <th>Artist</th>
+      <th>Playcount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for track, artist, count, id in results %}
+    <tr>
+      <td>
+        <a href="/track/{{ id }}">
+          <img
+            height="32"
+            width="32"
+            src="/res/loader.gif"
+            alt="Loading..."
+            data-cover="{{ id }}"
+          />
+          {{ track }}
+        </a>
+      </td>
+      <td>
+        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
+      </td>
+      <td>{{ count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

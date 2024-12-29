@@ -139,8 +139,12 @@ def tracks(id):
 
 @app.get('/artist/<id>')
 def artist(id):
-    market = request.args.get('market', 'BE')
-    return get_or_json('artist'+id+market, lambda: sp.artist(id, market=market), [])
+    return get_or_json('artist'+id ,lambda: sp.artist(id), [])
+
+@app.get('/artists/<id>')
+def artists(id):
+    ids = id.split(',')
+    return get_or_json('artist'+id, lambda: sp.artists(ids), [])
 
 if __name__ == '__main__':
     app2 = Flask(__name__)

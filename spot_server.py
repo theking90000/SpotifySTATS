@@ -29,6 +29,16 @@ def get_geoip(name):
         geoip = g._geoip = geoip2.database.Reader(name)
     return geoip
 
+def get_years():
+    years = getattr(g, '_years', None)
+    if years is None:
+        db = get_db()
+        c = db.cursor()
+        c.execute("SELECT strftime('%Y', ts) as year from history GROUP BY year")
+        years = [int(a[0]) for a in c.fetchall()]
+        g._years = years
+    return years
+
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_database', None)
@@ -53,6 +63,27 @@ def format_duration(duration, max_unit='d'):
             duration %= m[i]
     return s
 
+def get_minmax_ts():
+    m, M = getattr(g, '_minmax_ts', (None, None))
+    if m is None or M is None:
+        db = get_db()
+        c = db.cursor()
+        c.execute('SELECT min(ts), max(ts) FROM history')
+        m, M = c.fetchone()
+        m, M = g._minmax_ts = datetime.fromisoformat(m[:-1]), datetime.fromisoformat(M[:-1])
+
+    return m, M
+
+def get_full_year(f, t):
+    if f is None or t is None:
+        return None
+    if f.endswith('-01-01T00:00:00Z') and t.endswith('-12-31T23:59:59Z'):
+        a = f.split('-')[0]
+        b = t.split('-')[0]
+
+        return int(a) if a == b else None
+
+
 @app.route('/')
 def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
@@ -64,15 +95,25 @@ def serve_file(path):
 @app.route('/ip')
 def get_ip():
     db = get_db()
+    years = get_years()
+
+    f = request.args.get('from', None)
+    t = request.args.get('to', None)
+    is_year = get_full_year(f, t)
+    m, M = get_minmax_ts()
+    if f is None:
+        f = m
+    if t is None:
+        t = M
 
     c = db.cursor()
-    c.execute('SELECT count(distinct ip_addr) FROM history')
+    c.execute('SELECT count(distinct ip_addr) FROM history WHERE ts >= ? AND ts <= ?', (f, t))
     count2 = c.fetchone()[0]
 
     offset = int(request.args.get('offset', 0))
     limit = int(request.args.get('limit', 100))
     c = db.cursor()
-    c.execute('SELECT ip_addr, count(ip_addr) as c, max(ts) as ts, sum(ms_played) play_time FROM history GROUP BY ip_addr ORDER BY c DESC LIMIT ? OFFSET ?', (limit, offset))
+    c.execute('SELECT ip_addr, count(ip_addr) as c, max(ts) as ts, sum(ms_played) play_time FROM history WHERE ts >= ? AND ts <= ? GROUP BY ip_addr ORDER BY c DESC LIMIT ? OFFSET ?', (f, t, limit, offset))
 
     ips = c.fetchall()
 
@@ -103,7 +144,7 @@ def get_ip():
         ))
     
     return render_template('index.html', content='_ip.html', ips=ips2, count=count2,
-                           offset=offset, limit=limit)
+                           offset=offset, limit=limit, years=years, year=is_year, f=f, t=t)
 
 @app.route('/ip/<ip>')
 def get_ip_details(ip):
@@ -154,21 +195,6 @@ def get_ip_details(ip):
                            start=start, end=end, count=count, offset=offset, limit=limit,
                            country=cnt, asn=asnn, playtime=playtime)
 
-def get_minmax_ts():
-    db = get_db()
-    c = db.cursor()
-    c.execute('SELECT min(ts), max(ts) FROM history')
-    m, M = c.fetchone()
-    return datetime.fromisoformat(m[:-1]), datetime.fromisoformat(M[:-1])
-
-def get_full_year(f, t):
-    if f is None or t is None:
-        return None
-    if f.endswith('-01-01T00:00:00Z') and t.endswith('-12-31T23:59:59Z'):
-        a = f.split('-')[0]
-        b = t.split('-')[0]
-
-        return int(a) if a == b else None
 
 @app.route('/insights')
 def insights():

@@ -19,22 +19,29 @@ const tracksBulk = _manager((ids) =>
   $.getJSON(window.api_endpoint + "/tracks/" + ids.join(","))
 );
 
+const artistsBulk = _manager((ids) =>
+  $.getJSON(window.api_endpoint + "/artists/" + ids.join(","))
+);
+
 $(document).ready(async () => {
   // -- [data-cover] --
   let ids = $("img[data-cover]")
     .map((i, el) => $(el).data("cover"))
     .get();
-  while (ids.length > 0) {
-    const data = await tracksBulk.get(ids.splice(0, 50));
-    ids = ids.splice(50);
+  let p = 0;
+  while (p < ids.length) {
+    const data = await tracksBulk.get(ids.slice(p, p + 50));
     $("img[data-cover]").each((i, img) => {
-      const d = data.tracks[i];
+      if (i < p || i >= p + 50) return;
+      const d = data.tracks[i - p];
+      if (!d.album) return;
       const lowRes = d.album.images.find((x) => x.width === 64);
       if (lowRes) $(img).attr("src", lowRes.url).attr("alt", data.name);
       else {
       }
       //$(img).attr("src", data.images);
     });
+    p += 50;
   }
 });
 
@@ -43,16 +50,29 @@ $(document).ready(async () => {
   let ids = $("img[data-cover-artist]")
     .map((i, el) => $(el).data("cover-artist"))
     .get();
-  while (ids.length > 0) {
+  let p = 0;
+  let artists = [];
+  while (p < ids.length) {
     const data = await tracksBulk.get(ids.splice(0, 50));
-    ids = ids.splice(50);
     $("img[data-cover-artist]").each((i, img) => {
-      const d = data.tracks[i];
-      const lowRes = d.album.images.find((x) => x.width === 64);
-      if (lowRes) $(img).attr("src", lowRes.url).attr("alt", data.name);
-      else {
-      }
-      //$(img).attr("src", data.images);
+      if (i < p || i >= p + 50) return;
+      const d = data.tracks[i - p];
+      if (!d.artists[0]) return;
+      artists.push(d.artists[0].uri);
     });
+    p += 50;
+  }
+
+  p = 0;
+  while (p < artists.length) {
+    const data = await artistsBulk.get(artists.splice(0, 50));
+    $("img[data-cover-artist]").each((i, img) => {
+      if (i < p || i >= p + 50) return;
+      const d = data.artists[i - p];
+      if (!d) return;
+      const image = d.images.find((x) => x.width === 160);
+      if (image) $(img).attr("src", image.url).attr("alt", d.name);
+    });
+    p += 50;
   }
 });

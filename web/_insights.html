@@ -24,7 +24,7 @@
   playtime }}.
 </p>
 
-<h4>Top 10 tracks by playcount</h4>
+<h4>Top {{ tc }} tracks by playcount {% if year %} - {{ year }}{% endif %}</h4>
 
 <table class="table table-striped table-bordered">
   <thead>
@@ -60,7 +60,7 @@
   </tbody>
 </table>
 
-<h4>Top 10 tracks by playtime</h4>
+<h4>Top {{ tc }} tracks by playtime {% if year %} - {{ year }}{% endif %}</h4>
 
 <table class="table table-striped table-bordered">
   <thead>
@@ -96,7 +96,7 @@
   </tbody>
 </table>
 
-<h4>Top 10 artists by playcount</h4>
+<h4>Top {{ tc }} artists by playcount {% if year %} - {{ year }}{% endif %}</h4>
 
 <table class="table table-striped table-bordered">
   <thead>
@@ -126,7 +126,7 @@
   </tbody>
 </table>
 
-<h4>Top 10 artists by playtime</h4>
+<h4>Top {{ tc }} artists by playtime {% if year %} - {{ year }}{% endif %}</h4>
 
 <table class="table table-striped table-bordered">
   <thead>

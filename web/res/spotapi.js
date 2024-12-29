@@ -20,6 +20,7 @@ const tracksBulk = _manager((ids) =>
 );
 
 $(document).ready(async () => {
+  // -- [data-cover] --
   let ids = $("img[data-cover]")
     .map((i, el) => $(el).data("cover"))
     .get();
@@ -27,6 +28,25 @@ $(document).ready(async () => {
     const data = await tracksBulk.get(ids.splice(0, 50));
     ids = ids.splice(50);
     $("img[data-cover]").each((i, img) => {
+      const d = data.tracks[i];
+      const lowRes = d.album.images.find((x) => x.width === 64);
+      if (lowRes) $(img).attr("src", lowRes.url).attr("alt", data.name);
+      else {
+      }
+      //$(img).attr("src", data.images);
+    });
+  }
+});
+
+$(document).ready(async () => {
+  // -- [data-cover-artist] --
+  let ids = $("img[data-cover-artist]")
+    .map((i, el) => $(el).data("cover-artist"))
+    .get();
+  while (ids.length > 0) {
+    const data = await tracksBulk.get(ids.splice(0, 50));
+    ids = ids.splice(50);
+    $("img[data-cover-artist]").each((i, img) => {
       const d = data.tracks[i];
       const lowRes = d.album.images.find((x) => x.width === 64);
       if (lowRes) $(img).attr("src", lowRes.url).attr("alt", data.name);

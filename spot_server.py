@@ -208,7 +208,7 @@ def insights():
         ))
     
     tc = int(request.args.get('top', 10))
-    # top X tracks by play count
+    # top X tracks by play time
     c = db.cursor()
     c.execute('SELECT master_metadata_track_name, count(*), sum(ms_played) as c, master_metadata_album_artist_name, spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY spotify_track_uri ORDER BY c DESC LIMIT ?', (f, t, tc))
     top_playtime = c.fetchall()
@@ -223,11 +223,38 @@ def insights():
             tt[4]
         ))
 
+    # top X artists by play count
+    c = db.cursor()
+    c.execute('SELECT master_metadata_album_artist_name, count(*) as c, sum(ms_played), spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY master_metadata_album_artist_name ORDER BY c DESC LIMIT ?', (f, t, tc))
+
+    a_playcount = []
+    for tt in c.fetchall():
+        a_playcount.append((
+            tt[0],
+            tt[1],
+            format_duration(tt[2]/1000, 'm'),
+            tt[3] #track id
+        ))
+
+    # top X artists by play count
+    c = db.cursor()
+    c.execute('SELECT master_metadata_album_artist_name, count(*) , sum(ms_played) as c, spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY master_metadata_album_artist_name ORDER BY c DESC LIMIT ?', (f, t, tc))
+
+    a_playtime = []
+    for tt in c.fetchall():
+        a_playtime.append((
+            tt[0],
+            tt[1],
+            format_duration(tt[2]/1000, 'm'),
+            tt[3] # track id
+        ))
+
     return render_template('index.html', content='_insights.html',
                            years=years, year=is_year, f=f, t=t,
                            count=count, playtime=playtime, playtime_raw=playtime_raw,
                            tc=tc, top_playcount=t_playcount,
-                           top_playtime=t_playtime)
+                           top_playtime=t_playtime, top_a_playcount=a_playcount,
+                           top_a_playtime=a_playtime)
 
 if __name__ == '__main__':
     # Check if the no-api flag is set

@@ -95,3 +95,63 @@
     {% endfor %}
   </tbody>
 </table>
+
+<h4>Top 10 artists by playcount</h4>
+
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Artist</th>
+      <th>Playtime</th>
+      <th>Playcount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for artist, count, playtime, id in top_a_playcount %}
+    <tr>
+      <td>
+        <img
+          height="32"
+          width="32"
+          src="/res/loader.gif"
+          alt="Loading..."
+          data-cover-artist="{{ id }}"
+        />
+        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
+      </td>
+      <td>{{ playtime }}</td>
+      <td>{{ count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h4>Top 10 artists by playtime</h4>
+
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Artist</th>
+      <th>Playtime</th>
+      <th>Playcount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for artist, count, playtime, id in top_a_playtime %}
+    <tr>
+      <td>
+        <img
+          height="32"
+          width="32"
+          src="/res/loader.gif"
+          alt="Loading..."
+          data-cover-artist="{{ id }}"
+        />
+        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
+      </td>
+      <td>{{ playtime }}</td>
+      <td>{{ count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

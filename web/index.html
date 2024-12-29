@@ -54,6 +54,10 @@
 
     <main role="main" class="container">{%include content %}</main>
 
-    <script src="res/page.js" type="text/javascript"></script>
+    <script src="/res/page.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      window.api_endpoint = {{ api_endpoint|tojson }};
+    </script>
+    <script src="/res/spotapi.js" type="text/javascript"></script>
   </body>
 </html>

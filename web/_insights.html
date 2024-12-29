@@ -39,7 +39,16 @@
     {% for track, count, playtime, artist, id in top_playcount %}
     <tr>
       <td>
-        <a href="/track/{{ id }}">{{ track }}</a>
+        <a href="/track/{{ id }}">
+          <img
+            height="32"
+            width="32"
+            src="/res/loader.gif"
+            alt="Loading..."
+            data-cover="{{ id }}"
+          />
+          {{ track }}
+        </a>
       </td>
       <td>
         <a href="/artist?from_track={{ id }}">{{ artist }}</a>

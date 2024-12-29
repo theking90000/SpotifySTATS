@@ -1,3 +1,7 @@
 Spotify Extended Streaming History
 databases
 streaming_history.db
+.env
+.spotipy_cache
+spot_api.db
+*.pyc

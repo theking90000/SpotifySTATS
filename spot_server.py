@@ -4,10 +4,18 @@ import geoip2.database
 from datetime import datetime
 
 DATABASE = 'streaming_history.db'
-
+API_ENDPOINT='/api'
 COUNTRY = 'databases/GeoLite2-Country.mmdb'
 ASN = 'databases/GeoLite2-ASN.mmdb'
+
 app = Flask(__name__, static_folder='web', template_folder='web')
+import sys
+no_api = '--no-api' in sys.argv
+if not no_api:
+    import api_server
+    API_ENDPOINT = '/api'
+    print(api_server.app)
+    app.register_blueprint(api_server.app, url_prefix='/api')
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -30,6 +38,10 @@ def close_connection(exception):
     geoip = getattr(g, '_geoip', None)
     if geoip is not None:
         geoip.close()
+
+@app.context_processor
+def get_api_endpoint():
+    return dict(api_endpoint=API_ENDPOINT)
 
 def format_duration(duration, max_unit='d'):
     u, m = ['d', 'h', 'm', 's'], [86400, 3600, 60, 1]
@@ -201,4 +213,5 @@ def insights():
                            tc=tc, top_playcount=t_playcount)
 
 if __name__ == '__main__':
+    # Check if the no-api flag is set
     app.run(debug=True)

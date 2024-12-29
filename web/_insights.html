@@ -1,0 +1,52 @@
+<div class="d-flex flex-row justify-content-between">
+  <h2>Insights</h2>
+  <div class="button-row">
+    {% for y in years %}
+    <a href="?from={{ y }}-01-01T00:00:00Z&to={{ y }}-12-31T23:59:59Z">
+      <button class="btn btn-primary me-2 {% if y == year %}active{% endif %}">
+        {{ y }}
+      </button>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if year %}
+<h3>Spotify Report for year {{ year }}</h3>
+
+{% else %}
+<h3>Spotify Report from {{ f }} to {{ t }}</h3>
+
+{% endif %}
+
+<p>
+  There have been {{ count }} different tracks played. Total playtime is {{
+  playtime }}.
+</p>
+
+<h4>Top 10 tracks by playcount</h4>
+
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Track</th>
+      <th>Artist</th>
+      <th>Playtime</th>
+      <th>Playcount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for track, count, playtime, artist, id in top_playcount %}
+    <tr>
+      <td>
+        <a href="/track/{{ id }}">{{ track }}</a>
+      </td>
+      <td>
+        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
+      </td>
+      <td>{{ playtime }}</td>
+      <td>{{ count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

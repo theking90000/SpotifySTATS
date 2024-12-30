@@ -4,7 +4,7 @@ async function loadcontent(params, container, text) {
       $(container)
         .html(`<div class="d-flex justify-content-center flex-column align-items-center">
     <img
-      src="/res/loader.gif"
+      src="${window.base_url}/res/loader.gif"
       height="64"
       width="64"
       class=""

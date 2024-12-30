@@ -14,7 +14,12 @@
   </div>
 </div>
 
-<form action="/search" method="get" class="form-group" id="search-form">
+<form
+  action="{{ base_url }}/search"
+  method="get"
+  class="form-group"
+  id="search-form"
+>
   <input
     type="text"
     id="query"
@@ -34,7 +39,7 @@
 <div id="results">
   <div class="d-flex justify-content-center flex-column align-items-center">
     <img
-      src="/res/loader.gif"
+      src="{{ base_url }}/res/loader.gif"
       height="64"
       width="64"
       class=""
@@ -60,7 +65,7 @@
     const from = document.querySelector('input[name="from"]').value;
     const to = document.querySelector('input[name="to"]').value;
 
-    const url = `/search?query=${query}&from=${from}&to=${to}&fetchtable`;
+    const url = `{{ base_url }}/search?query=${query}&from=${from}&to=${to}&fetchtable`;
     loadcontent(url, "#results", "Loading search results...");
 
     // update years button

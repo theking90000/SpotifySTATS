@@ -28,11 +28,11 @@
     <tr>
       <td>{{ ts }}</td>
       <td>
-        <a href="/track/{{ trackid }}">{{ track }}</a>
+        <a href="{{ base_url }}/track/{{ trackid }}">{{ track }}</a>
       </td>
       <td>{{ playtime }}</td>
       <td>
-        <a href="/platform/{{ platform }}">{{ platform }}</a>
+        <a href="{{ base_url }}/platform/{{ platform }}">{{ platform }}</a>
       </td>
       <td>
         {% if offline %}

@@ -1,16 +1,19 @@
 import sqlite3
-from flask import Flask, send_from_directory, render_template, g, request
+from flask import Flask, send_from_directory, render_template, g, request, url_for
 import geoip2.database
 from datetime import datetime
 import uuid
 from os import environ
 
 DATABASE = 'streaming_history.db'
-API_ENDPOINT='/api'
 COUNTRY = 'databases/GeoLite2-Country.mmdb'
 ASN = 'databases/GeoLite2-ASN.mmdb'
 
 app = Flask(__name__, static_folder='web', template_folder='web')
+app.config['APPLICATION_ROOT'] = environ.get('APPLICATION_ROOT', '/')
+BASE_URL = app.config['APPLICATION_ROOT'].rstrip('/')
+API_ENDPOINT= environ.get('API_ENDPOINT', BASE_URL+'/api')
+
 
 no_api = environ.get('SPOT_NO_API', False)
 if not no_api:
@@ -54,7 +57,8 @@ def close_connection(exception):
 @app.context_processor
 def get_api_endpoint():
     return dict(api_endpoint=API_ENDPOINT,
-                generate_uuid=lambda: str(uuid.uuid4()))
+                generate_uuid=lambda: str(uuid.uuid4()),
+                base_url=BASE_URL)
 
 def format_duration(duration, max_unit='d'):
     u, m = ['d', 'h', 'm', 's'], [86400, 3600, 60, 1]
@@ -120,7 +124,7 @@ def get_ft_y():
 
 @app.route('/')
 def serve_index():
-    return send_from_directory(app.static_folder, 'index.html')
+    return render_template('index.html', content='_index.html')
 
 @app.route('/res/<path:path>')
 def serve_file(path):

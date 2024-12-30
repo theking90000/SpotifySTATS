@@ -4,6 +4,8 @@ FROM python:3.10-alpine
 # Set the working directory in the container
 WORKDIR /app
 
+COPY databases/ databases/
+
 RUN pip install --no-cache-dir gunicorn
 
 COPY requirements.txt .
@@ -12,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY import.py .
 
-COPY web/ .
+COPY web/ web/
 
 COPY spot_server.py .
 

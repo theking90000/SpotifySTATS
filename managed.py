@@ -92,7 +92,6 @@ def after_request(response):
     #print('X', session, 'user' in session, session.user)
     if 'user' in session and session['user'] is not None:
         db = get_db()
-        print(session['user'])
         db.execute('UPDATE users SET last_online = current_timestamp WHERE id = ?', (session['user'],))
         db.commit()
     return response
@@ -232,11 +231,19 @@ def start_instance(user_id, datafile):
     c.execute('INSERT INTO instances (id, user_id, state) VALUES (?, ?, "init")', (id, user_id))
     db.commit()
 
-    container = client.containers.run(image, detach=True, auto_remove=True,environment={
-        'SCRIPT_NAME': '/app/' + id,
-        'APPLICATION_ROOT': '/app/' + id,
-        'API_ENDPOINT': '/api',
-    }) 
+    # Start container with 256Mb memory limit and 80% CPU
+    # For faster importation, we can increase the CPU limit (while running is 40% 64Mb)
+    try:
+        container = client.containers.run(image, detach=True, auto_remove=True,environment={
+            'SCRIPT_NAME': '/app/' + id,
+            'APPLICATION_ROOT': '/app/' + id,
+            'API_ENDPOINT': '/api',
+        }, mem_limit='256m', cpu_period=100000, cpu_quota=80000,
+        name=f'spotstats_{id}') 
+    except Exception as e:
+        print('Error starting container', e)
+        c.execute('DELETE FROM instances WHERE id = ?', (id,))
+        db.commit()
     container = client.containers.get(container.id)
     
     ip = container.attrs['NetworkSettings']['IPAddress']
@@ -278,6 +285,12 @@ def configure_instance(id, datafile):
     set_state(id, 'importing')
     # import 
     container.exec_run('python3 /app/import.py')
+
+    # after import is ready, we can remove the archive
+    container.exec_run('rm -rf /app/Spotify\ Extended\ Streaming\ History')
+
+    # change the limits to 64mb and 40% CPU
+    container.update(mem_limit='64m', cpu_quota=40000, cpu_period=100000)
 
     set_state(id, 'ready')
     

@@ -3,7 +3,8 @@ Managed environment hosting for the project
 Requires docker.
 """
 
-from flask import Flask, redirect, send_from_directory, session, request, g, session, render_template
+import docker.errors
+from flask import Flask, redirect, send_from_directory, session, request, g, session, render_template, Response
 import sqlite3
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from requests_oauthlib import OAuth2Session
@@ -13,6 +14,7 @@ import docker
 from flask_executor import Executor
 import tarfile
 import io
+import requests
 
 
 app = Flask(__name__, static_folder='managed_web', template_folder='managed_web')
@@ -129,11 +131,14 @@ def index():
     db = get_db()
     # check if instance is running
     c = db.cursor()
-    c.execute('SELECT container FROM instances WHERE user_id = ?', (session['user'],))
+    c.execute('SELECT id, container, state FROM instances WHERE user_id = ?', (session['user'],))
     res = c.fetchone() 
-
+    c_id, container, state = None, None, None
+    if res:
+        c_id, container, state = res
+    print('Container:', container, state, c_id)
     return render_template('index.html', content='_index.html', user=session['user'],
-                           is_running=res is not None)
+                           container=container, state=state, container_id=c_id)
     
 @app.post('/upload')
 def upload():
@@ -169,7 +174,7 @@ def stop_instance(user_id):
     try:
         container = client.containers.get(res[0])
         container.remove(force=True)
-    except docker.NotFound:
+    except docker.errors.NotFound:
         pass
 
 def start_instance(user_id, datafile):
@@ -177,29 +182,46 @@ def start_instance(user_id, datafile):
     db = get_db()
     c = db.cursor()
     # TODO: add resource limits
-    container = client.containers.run(image, detach=True, auto_remove=True) 
-    ip = container.attrs['NetworkSettings']['IPAddress']
     id = str(uuid.uuid4())
-    c.execute('INSERT INTO instances (id, user_id, container, container_ip, state) VALUES (?, ?, ?, ?, "init")', (id, user_id, container.id, ip))
+
+    c.execute('INSERT INTO instances (id, user_id, state) VALUES (?, ?, "init")', (id, user_id))
+    db.commit()
+
+    container = client.containers.run(image, detach=True, auto_remove=True,environment={
+        'SCRIPT_NAME': '/' + id,
+        'APPLICATION_ROOT': '/' + id
+    }) 
+    container = client.containers.get(container.id)
+    
+    ip = container.attrs['NetworkSettings']['IPAddress']
+    
+    c.execute('UPDATE instances SET container = ?, container_ip = ?, state = "created" WHERE id = ?', (container.id, ip, id))
     db.commit()
 
     # add task
-    configure_instance(user_id, datafile)
+    configure_instance(id, datafile)
     #executor.submit(configure_instance, user_id, datafile)
 
-def configure_instance(user_id, datafile):
+def set_state(id, state):
     db = get_db()
     c = db.cursor()
-    print('Configuring instance...', user_id, datafile)
-    c.execute('SELECT container, state FROM instances WHERE user_id = ?', (user_id,))
+    print('Setting state to', state, id)
+    c.execute('UPDATE instances SET state = ? WHERE id = ?', (state, id))
+    db.commit()
+
+def configure_instance(id, datafile):
+    db = get_db()
+    c = db.cursor()
+    print('Configuring instance...', id, datafile)
+    c.execute('SELECT container, state FROM instances WHERE id = ?', (id,))
     res = c.fetchone()
     if res is None:
         return
     
-    id, state = res
+    idc, state = res
     # print(id, state, datafile, datafile.stream)
-    container = client.containers.get(id) # configure the container
-
+    container = client.containers.get(idc) # configure the container
+    
     # process the archive
     # we open the zip file and extract each json file (<20MB)
 
@@ -222,10 +244,36 @@ def configure_instance(user_id, datafile):
     container.exec_run('mkdir -p /app/Spotify\ Extended\ Streaming\ History')
     container.put_archive('/app/Spotify Extended Streaming History', b)
 
+    set_state(id, 'importing')
     # import 
     container.exec_run('python3 /app/import.py')
-    
 
+    set_state(id, 'ready')
+    
+@app.route('/<id>', defaults={'path': ''})
+@app.route('/<id>/', defaults={'path': ''})
+@app.route('/<id>/<path:path>')
+def instance_proxy(id, path):
+    if 'user' not in session or session['user'] is None:
+        return redirect('/')
+    db = get_db()
+    c = db.cursor()
+    c.execute('SELECT container_ip, container, state FROM instances WHERE user_id = ?', (session['user'],))
+    res = c.fetchone()
+    print(res)
+    if res is None:
+        return redirect('/')
+    
+    ip, cid, state = res
+    if state != 'ready':
+        return redirect('/')
+    
+    # Reverse proxy to the container
+    resp = requests.get(f'http://{ip}:5000/{id}/{path}')
+
+    response = Response(resp.content, status=resp.status_code, headers=dict(resp.headers))
+    response.headers['X-Proxy-To'] = cid
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

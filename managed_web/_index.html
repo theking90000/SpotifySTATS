@@ -5,29 +5,41 @@
   <strong>No instance running</strong>
   Please upload your spotify stats bundle to start a new instance.
 </div>
+{% endif %} 
+
+{% if container and state == 'ready' %}
+
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <strong>Instance running</strong>
+  Your instance is running and ready to use.
+
+  <a href="/{{ container_id }}" class="btn btn-primary">Open Spotify Stats</a>
+</div>
+
 {% endif %}
 
-<h2 class="mb-4">Upload your bundle</h2>
+  <h2 class="mb-4">Upload your bundle</h2>
 
-<form
-  class="dropzone border rounded p-4 bg-light"
-  id="uploadForm"
-  action="/upload"
-  method="post"
-  enctype="multipart/form-data"
->
-  <div class="mb-3">
-    <p class="text-muted">
-      We need your Spotify Extended Streaming History zip-file. <br />
-      You can download it from your Spotify account here:
-      <a href="https://www.spotify.com/account/privacy/" class="text-primary">
-        https://www.spotify.com/account/privacy/
-      </a>
-    </p>
-    <input type="file" name="file" accept=".zip" class="form-control" />
-  </div>
+  <form
+    class="dropzone border rounded p-4 bg-light"
+    id="uploadForm"
+    action="/upload"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    <div class="mb-3">
+      <p class="text-muted">
+        We need your Spotify Extended Streaming History zip-file. <br />
+        You can download it from your Spotify account here:
+        <a href="https://www.spotify.com/account/privacy/" class="text-primary">
+          https://www.spotify.com/account/privacy/
+        </a>
+      </p>
+      <input type="file" name="file" accept=".zip" class="form-control" />
+    </div>
 
-  <button type="submit" class="btn btn-primary form-control">
-    Launch Spotify Stats
-  </button>
-</form>
+    <button type="submit" class="btn btn-primary form-control">
+      Launch Spotify Stats
+    </button>
+  </form>
+</div>

@@ -26,132 +26,74 @@
 
 <h4>Top {{ tc }} tracks by playcount {% if year %} - {{ year }}{% endif %}</h4>
 
-<table class="table table-striped table-bordered">
-  <thead>
-    <tr>
-      <th>Track</th>
-      <th>Artist</th>
-      <th>Playtime</th>
-      <th>Playcount</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for track, count, playtime, artist, id in top_playcount %}
-    <tr>
-      <td>
-        <a href="/track/{{ id }}">
-          <img
-            height="32"
-            width="32"
-            src="/res/loader.gif"
-            alt="Loading..."
-            data-cover="{{ id }}"
-          />
-          {{ track }}
-        </a>
-      </td>
-      <td>
-        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
-      </td>
-      <td>{{ playtime }}</td>
-      <td>{{ count }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div data-table="ttrackplaycount">
+  <div class="d-flex justify-content-center flex-column align-items-center">
+    <img
+      src="/res/loader.gif"
+      height="64"
+      width="64"
+      class=""
+      alt="Loading..."
+    />
+    <div>Loading...</div>
+  </div>
+</div>
 
 <h4>Top {{ tc }} tracks by playtime {% if year %} - {{ year }}{% endif %}</h4>
 
-<table class="table table-striped table-bordered">
-  <thead>
-    <tr>
-      <th>Track</th>
-      <th>Artist</th>
-      <th>Playtime</th>
-      <th>Playcount</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for track, count, playtime, artist, id in top_playtime %}
-    <tr>
-      <td>
-        <a href="/track/{{ id }}">
-          <img
-            height="32"
-            width="32"
-            src="/res/loader.gif"
-            alt="Loading..."
-            data-cover="{{ id }}"
-          />
-          {{ track }}
-        </a>
-      </td>
-      <td>
-        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
-      </td>
-      <td>{{ playtime }}</td>
-      <td>{{ count }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div data-table="ttrackplaytime">
+  <div class="d-flex justify-content-center flex-column align-items-center">
+    <img
+      src="/res/loader.gif"
+      height="64"
+      width="64"
+      class=""
+      alt="Loading..."
+    />
+    <div>Loading...</div>
+  </div>
+</div>
 
 <h4>Top {{ tc }} artists by playcount {% if year %} - {{ year }}{% endif %}</h4>
 
-<table class="table table-striped table-bordered">
-  <thead>
-    <tr>
-      <th>Artist</th>
-      <th>Playtime</th>
-      <th>Playcount</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for artist, count, playtime, id in top_a_playcount %}
-    <tr>
-      <td>
-        <img
-          height="32"
-          width="32"
-          src="/res/loader.gif"
-          alt="Loading..."
-          data-cover-artist="{{ id }}"
-        />
-        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
-      </td>
-      <td>{{ playtime }}</td>
-      <td>{{ count }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div data-table="tartistplaycount">
+  <div class="d-flex justify-content-center flex-column align-items-center">
+    <img
+      src="/res/loader.gif"
+      height="64"
+      width="64"
+      class=""
+      alt="Loading..."
+    />
+    <div>Loading...</div>
+  </div>
+</div>
 
 <h4>Top {{ tc }} artists by playtime {% if year %} - {{ year }}{% endif %}</h4>
 
-<table class="table table-striped table-bordered">
-  <thead>
-    <tr>
-      <th>Artist</th>
-      <th>Playtime</th>
-      <th>Playcount</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for artist, count, playtime, id in top_a_playtime %}
-    <tr>
-      <td>
-        <img
-          height="32"
-          width="32"
-          src="/res/loader.gif"
-          alt="Loading..."
-          data-cover-artist="{{ id }}"
-        />
-        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
-      </td>
-      <td>{{ playtime }}</td>
-      <td>{{ count }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div data-table="tartistplaytime">
+  <div class="d-flex justify-content-center flex-column align-items-center">
+    <img
+      src="/res/loader.gif"
+      height="64"
+      width="64"
+      class=""
+      alt="Loading..."
+    />
+    <div>Loading...</div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(() => {
+    const sep = window.location.href.includes("?") ? "&" : "?";
+    $("[data-table]").each(function () {
+      const table = $(this).data("table");
+      loadcontent(
+        window.location.href + sep + "table=" + table,
+        $(this),
+        "Loading..."
+      );
+    });
+  });
+</script>

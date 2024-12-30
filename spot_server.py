@@ -106,7 +106,8 @@ def get_ft_y():
     f = request.args.get('from', None)
     t = request.args.get('to', None)
     is_year = get_full_year(f, t)
-    m, M = get_minmax_ts()
+    if f is None or t is None:
+        m, M = get_minmax_ts()
     if f is None:
         f = m
     if t is None:
@@ -231,88 +232,94 @@ def get_ip_details(ip):
 @app.route('/insights')
 def insights():
     db = get_db()
-    c = db.cursor()
-    c.execute("SELECT strftime('%Y', ts) as year from history GROUP BY year")
-    years = [int(a[0]) for a in c.fetchall()]
 
-    f = request.args.get('from', None)
-    t = request.args.get('to', None)
-    is_year = get_full_year(f, t)
-    m, M = get_minmax_ts()
-    if f is None:
-        f = m
-    if t is None:
-        t = M
-
-    c = db.cursor()
-    c.execute('SELECT count(*), sum(ms_played) FROM history WHERE ts >= ? AND ts <= ?', (f, t))
-    count, playtime_raw = c.fetchone()
-    playtime = format_duration(playtime_raw/1000, 'm')
-
+    table = request.args.get('table', None)
     tc = int(request.args.get('top', 10))
-    # top X tracks by play count
-    c = db.cursor()
-    c.execute('SELECT master_metadata_track_name, count(*) as c, sum(ms_played), master_metadata_album_artist_name, spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY spotify_track_uri ORDER BY c DESC LIMIT ?', (f, t, tc))
-    top_playcount = c.fetchall()
 
-    t_playcount = []
-    for tt in top_playcount:
-        t_playcount.append((
-            tt[0],
-            tt[1],
-            format_duration(tt[2]/1000, 'm'),
-            tt[3],
-            tt[4]
-        ))
     
-    tc = int(request.args.get('top', 10))
-    # top X tracks by play time
-    c = db.cursor()
-    c.execute('SELECT master_metadata_track_name, count(*), sum(ms_played) as c, master_metadata_album_artist_name, spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY spotify_track_uri ORDER BY c DESC LIMIT ?', (f, t, tc))
-    top_playtime = c.fetchall()
+    if table is None:
+        f, t, is_year, years = get_ft_y()
 
-    t_playtime = []
-    for tt in top_playtime:
-        t_playtime.append((
-            tt[0],
-            tt[1],
-            format_duration(tt[2]/1000, 'm'),
-            tt[3],
-            tt[4]
-        ))
+        c = db.cursor()
+        c.execute('SELECT count(*), sum(ms_played) FROM history WHERE ts >= ? AND ts <= ?', (f, t))
+        count, playtime_raw = c.fetchone()
+        playtime = format_duration(playtime_raw/1000, 'm')
 
-    # top X artists by play count
-    c = db.cursor()
-    c.execute('SELECT master_metadata_album_artist_name, count(*) as c, sum(ms_played), spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY master_metadata_album_artist_name ORDER BY c DESC LIMIT ?', (f, t, tc))
-
-    a_playcount = []
-    for tt in c.fetchall():
-        a_playcount.append((
-            tt[0],
-            tt[1],
-            format_duration(tt[2]/1000, 'm'),
-            tt[3] #track id
-        ))
-
-    # top X artists by play count
-    c = db.cursor()
-    c.execute('SELECT master_metadata_album_artist_name, count(*) , sum(ms_played) as c, spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY master_metadata_album_artist_name ORDER BY c DESC LIMIT ?', (f, t, tc))
-
-    a_playtime = []
-    for tt in c.fetchall():
-        a_playtime.append((
-            tt[0],
-            tt[1],
-            format_duration(tt[2]/1000, 'm'),
-            tt[3] # track id
-        ))
-
-    return render_template('index.html', content='_insights.html',
+        return render_template('index.html', content='_insights.html',
                            years=years, year=is_year, f=f, t=t,
                            count=count, playtime=playtime, playtime_raw=playtime_raw,
-                           tc=tc, top_playcount=t_playcount,
-                           top_playtime=t_playtime, top_a_playcount=a_playcount,
-                           top_a_playtime=a_playtime)
+                           tc=tc)
+    
+    f, t = get_ft()
+
+    if table == 'ttrackplaycount':
+        c = db.cursor()
+        c.execute('SELECT master_metadata_track_name, count(*) as c, sum(ms_played), master_metadata_album_artist_name, spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY spotify_track_uri ORDER BY c DESC LIMIT ?', (f, t, tc))
+        top_playcount = c.fetchall()
+
+        t_playcount = []
+        for tt in top_playcount:
+            t_playcount.append((
+                {"name": tt[0], "track": tt[4]},
+                tt[1],
+                format_duration(tt[2]/1000, 'm'),
+                { "name": tt[3], "artist": tt[4]},
+            ))
+
+        return render_template('_components/table.html', rows=t_playcount, 
+                               columns=['Track', 'Playcount', 'Playtime', 'Artist'])
+    
+    if table == 'ttrackplaytime':
+        c = db.cursor()
+        c.execute('SELECT master_metadata_track_name, count(*), sum(ms_played) as c, master_metadata_album_artist_name, spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY spotify_track_uri ORDER BY c DESC LIMIT ?', (f, t, tc))
+        top_playtime = c.fetchall()
+
+        t_playtime = []
+        for tt in top_playtime:
+            t_playtime.append((
+                { "name": tt[0], "track": tt[4]},
+                tt[1],
+                format_duration(tt[2]/1000, 'm'),
+                { "name": tt[3], "artist": tt[4]},
+            ))
+
+
+        return render_template('_components/table.html', rows=t_playtime, 
+                               columns=['Track', 'Playcount', 'Playtime', 'Artist'])
+    
+    if table == "tartistplaycount":
+        c = db.cursor()
+        c.execute('SELECT master_metadata_album_artist_name, count(*) as c, sum(ms_played), spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY master_metadata_album_artist_name ORDER BY c DESC LIMIT ?', (f, t, tc))
+
+        a_playcount = []
+        for tt in c.fetchall():
+            a_playcount.append((
+                {"name": tt[0], "artist": tt[3]},
+                tt[1],
+                format_duration(tt[2]/1000, 'm'),
+            ))
+
+        return render_template('_components/table.html', rows=a_playcount, 
+                               columns=['Artist', 'Playcount', 'Playtime'])
+    
+    if table == "tartistplaytime":
+
+    # top X artists by play count
+        c = db.cursor()
+        c.execute('SELECT master_metadata_album_artist_name, count(*) , sum(ms_played) as c, spotify_track_uri FROM history WHERE ts >= ? AND ts <= ? GROUP BY master_metadata_album_artist_name ORDER BY c DESC LIMIT ?', (f, t, tc))
+
+        a_playcount = []
+        for tt in c.fetchall():
+            a_playcount.append((
+                {"name": tt[0], "artist": tt[3]},
+                tt[1],
+                format_duration(tt[2]/1000, 'm'),
+            ))
+
+        return render_template('_components/table.html', rows=a_playcount, 
+                            columns=['Artist', 'Playcount', 'Playtime'])
+
+    return "Unknown table"
 
 @app.route('/track/<id>')
 def gettrack(id):

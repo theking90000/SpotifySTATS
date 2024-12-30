@@ -53,37 +53,43 @@ def insert_data(cursor, data):
     query = f"INSERT INTO {TABLE_NAME} ({columns}) VALUES ({placeholders})"
     cursor.executemany(query, [tuple(record.values()) for record in data])
 
-def load_json_files(directory):
-    """Load and parse all JSON files in the specified directory."""
-    records = []
+def find_json_files(directory):
+    files = []
     for filename in os.listdir(directory):
         if filename.endswith(".json"):
             file_path = os.path.join(directory, filename)
-            with open(file_path, "r", encoding="utf-8") as file:
-                try:
-                    records.extend(json.load(file))
-                except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON in {filename}: {e}")
+            files.append(file_path)
+
+    return files
+
+def load_json_file(file):
+    """Load and parse all JSON files in the specified directory."""
+    records = []
+    with open(file, "r", encoding="utf-8") as file:
+        try:
+            records = json.load(file)
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON in {file}: {e}")
     return records
 
 def main():
     # Connect to the SQLite database (or create it if it doesn't exist)
     conn = sqlite3.connect(DATABASE_FILE)
+    
     cursor = conn.cursor()
-
     # Create the schema
     create_database_schema(cursor)
 
     # Load JSON data from files
-    json_data = load_json_files(DATA_DIRECTORY)
+    for file in find_json_files(DATA_DIRECTORY):
+        json_data = load_json_file(file)
+        if json_data:
+            cursor = conn.cursor()
+            insert_data(cursor, json_data)
 
-    # Insert the data into the database
-    if json_data:
-        insert_data(cursor, json_data)
-
-    # Commit and close the connection
     conn.commit()
     conn.close()
+    
 
 if __name__ == "__main__":
     main()

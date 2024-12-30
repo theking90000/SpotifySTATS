@@ -12,7 +12,17 @@
   <a href="/app/{{ container_id }}" class="btn btn-primary"
     >Open Spotify Stats</a
   >
+
+  <br />
+  <small class="text-muted">Instance ID: {{ container_id }}</small>
 </div>
+
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+  <strong
+    >Your instance will automatically be deleted if not used during 30mn</strong
+  >
+</div>
+
 {% elif container_id %}
 <div class="alert alert-info alert-dismissible fade show" role="alert">
   <img
@@ -26,5 +36,8 @@
   {%if state == 'init' %} Booting up your instance {% endif %} {%if state ==
   'created' %} Copying your stats bundle {% endif %} {%if state == 'importing'
   %} Importing your stats bundle {% endif %}
+
+  <br />
+  <small class="text-muted">Instance ID: {{ container_id }}</small>
 </div>
 {% endif %}

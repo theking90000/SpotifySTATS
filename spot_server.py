@@ -19,7 +19,6 @@ no_api = environ.get('SPOT_NO_API', False)
 if not no_api:
     import api_server
     API_ENDPOINT = '/api'
-    print(api_server.app)
     app.register_blueprint(api_server.app, url_prefix='/api')
 
 def get_db():

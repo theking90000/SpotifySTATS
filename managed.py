@@ -56,9 +56,9 @@ user_url = environ.get('USER_URL')
 scope = []
 
 # Include API
-from api_server import app as api_app
+import api_server
 import zipfile
-app.register_blueprint(api_app)
+app.register_blueprint(api_server.app, url_prefix='/api')
 
 DATABASE = 'managed.db'
 
@@ -188,8 +188,9 @@ def start_instance(user_id, datafile):
     db.commit()
 
     container = client.containers.run(image, detach=True, auto_remove=True,environment={
-        'SCRIPT_NAME': '/' + id,
-        'APPLICATION_ROOT': '/' + id
+        'SCRIPT_NAME': '/app/' + id,
+        'APPLICATION_ROOT': '/app/' + id,
+        'API_ENDPOINT': '/api',
     }) 
     container = client.containers.get(container.id)
     
@@ -250,17 +251,23 @@ def configure_instance(id, datafile):
 
     set_state(id, 'ready')
     
-@app.route('/<id>', defaults={'path': ''})
-@app.route('/<id>/', defaults={'path': ''})
-@app.route('/<id>/<path:path>')
+@app.route('/app/<id>', defaults={'path': ''})
+@app.route('/app/<id>/', defaults={'path': ''})
+@app.route('/app/<id>/<path:path>')
 def instance_proxy(id, path):
+    # check if id is UUID
+    try:
+        print('checking ID', id)
+        uuid.UUID(id)
+    except ValueError:
+        return
     if 'user' not in session or session['user'] is None:
         return redirect('/')
     db = get_db()
     c = db.cursor()
-    c.execute('SELECT container_ip, container, state FROM instances WHERE user_id = ?', (session['user'],))
+    c.execute('SELECT container_ip, container, state FROM instances WHERE user_id = ? and id = ?', (session['user'], id))
     res = c.fetchone()
-    print(res)
+    
     if res is None:
         return redirect('/')
     
@@ -269,7 +276,8 @@ def instance_proxy(id, path):
         return redirect('/')
     
     # Reverse proxy to the container
-    resp = requests.get(f'http://{ip}:5000/{id}/{path}')
+    print('req', request.full_path)
+    resp = requests.get(f'http://{ip}:5000/{request.full_path}')
 
     response = Response(resp.content, status=resp.status_code, headers=dict(resp.headers))
     response.headers['X-Proxy-To'] = cid

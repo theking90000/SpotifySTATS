@@ -1,6 +1,18 @@
 # SpotifySTATS
 
-This is an application allowing to visualize your spotify stats by using your datapackage (request [here](https://spotify.com/account/privacy)).
+This application allows you to visualize your Spotify statistics using your data package, which you can request [here](https://spotify.com/account/privacy). It serves as an explorer for your Spotify data export, providing a user-friendly interface to delve into your listening habits. With this app, you can:
+
+- View your top tracks and artists for each year, similar to Spotify Wrapped.
+- Explore individual track streams and detailed metadata, including connection history.
+- Enjoy an easy-to-use interface that makes navigating your Spotify data a breeze.
+
+Whether you're curious about your listening trends or want to dive deep into your streaming history, this app offers a comprehensive and engaging way to explore your Spotify data.
+
+## Screenshots
+
+| ![Screenshot 1](.github/images/screenshot1.png) | ![Screenshot 2](.github/images/screenshot2.png) |
+| ----------------------------------------------- | ----------------------------------------------- |
+| ![Screenshot 3](.github/images/screenshot3.png) | ![Screenshot 4](.github/images/screenshot4.png) |
 
 # Using the app
 
@@ -10,7 +22,11 @@ The application is using Flask.
 - `spot_api.py` : flask blueprint to proxy spotify API calls
 - `import.py` : script to import JSON files into `streaming_history.db`
 
-You need to download [GeoLite2 database](https://github.com/P3TERX/GeoLite.mmdb) and put the files `GeoLite2-ASN.mmdb` and `GeoLite2-Country.mmdb` inside the `databases/` directory.
+You need to download [GeoLite2 database](https://github.com/P3TERX/GeoLite.mmdb) and put the files `GeoLite2-ASN.mmdb` and `GeoLite2-Country.mmdb` inside the `databases/` directory. There is a script `download_geolite2.py` to do it easily.
+
+```bash
+python download_geolite2.py
+```
 
 You also need to configure environment variables (`.env` file supported)
 

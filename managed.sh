@@ -42,6 +42,8 @@ WORKDIR=$(dirname "$(readlink -f "$0")")
 echo "Checking for Docker image..."
 
 if [ "$(docker images -q $DOCKER_IMAGE 2> /dev/null)" == "" ] || [ "$2" == "-f" ]; then
+    echo "Downloading GeoLite2 database..."
+    python3 download_geolite2.py
     echo "Building Docker image..."
     docker build -t $DOCKER_IMAGE .
 else
@@ -66,6 +68,7 @@ After=network.target
 [Service]
 User=$(whoami)
 WorkingDirectory=$WORKDIR
+EnvironmentFile=$WORKDIR/.env2
 Environment="DOCKER_IMAGE=$DOCKER_IMAGE"
 ExecStart=$WORKDIR/venv/bin/python -m gunicorn -b $HOST managed:app
 Restart=always
@@ -76,6 +79,21 @@ EOL
 fi
 
 sudo systemctl daemon-reload
+
+bash -c "cat > .env2" <<EOL
+SPOTIFY_CLIENT_ID=<spotify_client_id>
+SPOTIFY_CLIENT_SECRET=<spotify_client>
+CLIENT_ID=<spotify_client_id>
+CLIENT_SECRET=<spotify_client>
+AUTHORIZATION_BASE_URL=https://accounts.spotify.com/authorize
+TOKEN_URL=https://accounts.spotify.com/api/token
+USER_URL=https://api.spotify.com/v1/me
+SECRET_KEY=<unique_secret_key>
+REDIRECT_URI=https://app-url/callback
+EOL
+
+echo 'Service installed'
+echo 'Configure env variables in .env2 file'
 fi
 
 if [ "$MODE" = "service" ] && [ "$2" = "start" ]; then

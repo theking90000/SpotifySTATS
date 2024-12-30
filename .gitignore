@@ -5,3 +5,5 @@ streaming_history.db
 .spotipy_cache
 spot_api.db
 *.pyc
+managed.db
+venv

@@ -1,0 +1,6 @@
+flask
+docker
+flask-login
+requests-oauthlib
+spotipy
+flask-executor

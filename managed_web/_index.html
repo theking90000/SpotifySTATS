@@ -1,0 +1,33 @@
+<h1>Spotify Stats</h1>
+
+{% if not container %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+  <strong>No instance running</strong>
+  Please upload your spotify stats bundle to start a new instance.
+</div>
+{% endif %}
+
+<h2 class="mb-4">Upload your bundle</h2>
+
+<form
+  class="dropzone border rounded p-4 bg-light"
+  id="uploadForm"
+  action="/upload"
+  method="post"
+  enctype="multipart/form-data"
+>
+  <div class="mb-3">
+    <p class="text-muted">
+      We need your Spotify Extended Streaming History zip-file. <br />
+      You can download it from your Spotify account here:
+      <a href="https://www.spotify.com/account/privacy/" class="text-primary">
+        https://www.spotify.com/account/privacy/
+      </a>
+    </p>
+    <input type="file" name="file" accept=".zip" class="form-control" />
+  </div>
+
+  <button type="submit" class="btn btn-primary form-control">
+    Launch Spotify Stats
+  </button>
+</form>

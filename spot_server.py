@@ -3,6 +3,7 @@ from flask import Flask, send_from_directory, render_template, g, request
 import geoip2.database
 from datetime import datetime
 import uuid
+from os import environ
 
 DATABASE = 'streaming_history.db'
 API_ENDPOINT='/api'
@@ -10,8 +11,8 @@ COUNTRY = 'databases/GeoLite2-Country.mmdb'
 ASN = 'databases/GeoLite2-ASN.mmdb'
 
 app = Flask(__name__, static_folder='web', template_folder='web')
-import sys
-no_api = '--no-api' in sys.argv
+
+no_api = environ.get('SPOT_NO_API', False)
 if not no_api:
     import api_server
     API_ENDPOINT = '/api'

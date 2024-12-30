@@ -2,6 +2,7 @@ import sqlite3
 from flask import Flask, send_from_directory, render_template, g, request
 import geoip2.database
 from datetime import datetime
+import uuid
 
 DATABASE = 'streaming_history.db'
 API_ENDPOINT='/api'
@@ -51,7 +52,8 @@ def close_connection(exception):
 
 @app.context_processor
 def get_api_endpoint():
-    return dict(api_endpoint=API_ENDPOINT)
+    return dict(api_endpoint=API_ENDPOINT,
+                generate_uuid=lambda: str(uuid.uuid4()))
 
 def format_duration(duration, max_unit='d'):
     u, m = ['d', 'h', 'm', 's'], [86400, 3600, 60, 1]
@@ -84,6 +86,18 @@ def get_full_year(f, t):
         return int(a) if a == b else None
     
 def get_ft():
+    f = request.args.get('from', None)
+    t = request.args.get('to', None)
+    is_year = get_full_year(f, t)
+    m, M = get_minmax_ts()
+    if f is None:
+        f = m
+    if t is None:
+        t = M
+
+    return f, t
+
+def get_ft_y():
     db = get_db()
     c = db.cursor()
     c.execute("SELECT strftime('%Y', ts) as year from history GROUP BY year")
@@ -99,6 +113,7 @@ def get_ft():
         t = M
 
     return f, t, is_year, years
+
 
 
 @app.route('/')
@@ -331,24 +346,28 @@ def search():
     offset = int(request.args.get('offset', 0))
     limit = int(request.args.get('limit', 100))
 
-    f, t, is_year, years = get_ft()
-
+    is_result = 'fetchtable' in request.args
     db = get_db()
-    results = []
-    if query != '':
+
+    if is_result:
+        f, t = get_ft()
         c = db.cursor()
         c.execute('SELECT  master_metadata_track_name, master_metadata_album_artist_name, count(*) as c, spotify_track_uri FROM history WHERE (master_metadata_track_name LIKE "%" || ? || "%" OR master_metadata_album_artist_name LIKE "%" || ? || "%") AND ts >= ? AND ts <= ? GROUP BY spotify_track_uri ORDER BY c DESC LIMIT ? OFFSET ?', (query, query, f, t, limit, offset))
+        results = []
+        
         for r in c.fetchall():
             results.append((
-               r[0],
+                { 'name': r[0], 'track': r[3]},
                 r[1],
                 r[2],
-                r[3]
             ))
+        return render_template('_components/table.html', rows=results, columns=['Track', 'Artist', 'Playcount'])
+    
+    f, t, is_year, years = get_ft_y()        
 
     return render_template('index.html', content='_search.html', query=query,
                            years=years, year=is_year, f=f, t=t,
-                           results=results, offset=offset, limit=limit)
+                           offset=offset, limit=limit)
 
 if __name__ == '__main__':
     # Check if the no-api flag is set

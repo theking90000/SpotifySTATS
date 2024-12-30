@@ -1,10 +1,22 @@
-async function loadpage(params) {
+async function loadcontent(params, container, text) {
   try {
+    if (text)
+      $(container)
+        .html(`<div class="d-flex justify-content-center flex-column align-items-center">
+    <img
+      src="/res/loader.gif"
+      height="64"
+      width="64"
+      class=""
+      alt="Loading..."
+    />
+    <div>${text}</div>
+  </div>`);
     const content = await $.get(params);
-    $("main").html(content);
+    $(container).html(content);
   } catch (error) {
     console.error("Error loading page:", error);
-    $("main").html("<p>Error loading page content</p>");
+    $(container).html("<p>Error loading page content</p>");
   }
 }
 

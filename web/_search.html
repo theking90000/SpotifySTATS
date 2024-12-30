@@ -3,6 +3,7 @@
   <div class="button-row">
     {% for y in years %}
     <a
+      data-year="{{ y }}"
       href="?from={{ y }}-01-01T00:00:00Z&to={{ y }}-12-31T23:59:59Z&query={{ query }}"
     >
       <button class="btn btn-primary me-2 {% if y == year %}active{% endif %}">
@@ -13,7 +14,7 @@
   </div>
 </div>
 
-<form action="/search" method="get" class="form-group">
+<form action="/search" method="get" class="form-group" id="search-form">
   <input
     type="text"
     id="query"
@@ -30,34 +31,49 @@
   <button type="submit" class="btn btn-primary mt-2">Search</button>
 </form>
 
-<table class="table table-striped table-bordered">
-  <thead>
-    <tr>
-      <th>Track</th>
-      <th>Artist</th>
-      <th>Playcount</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for track, artist, count, id in results %}
-    <tr>
-      <td>
-        <a href="/track/{{ id }}">
-          <img
-            height="32"
-            width="32"
-            src="/res/loader.gif"
-            alt="Loading..."
-            data-cover="{{ id }}"
-          />
-          {{ track }}
-        </a>
-      </td>
-      <td>
-        <a href="/artist?from_track={{ id }}">{{ artist }}</a>
-      </td>
-      <td>{{ count }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div id="results">
+  <div class="d-flex justify-content-center flex-column align-items-center">
+    <img
+      src="/res/loader.gif"
+      height="64"
+      width="64"
+      class=""
+      alt="Loading..."
+    />
+    <div>Loading search results...</div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(() => {
+    const sep = window.location.href.includes("?") ? "&" : "?";
+    loadcontent(
+      window.location.href + sep + "fetchtable",
+      "#results",
+      "Loading search results..."
+    );
+  });
+
+  $("#search-form").submit((e) => {
+    e.preventDefault();
+    const query = document.getElementById("query").value;
+    const from = document.querySelector('input[name="from"]').value;
+    const to = document.querySelector('input[name="to"]').value;
+
+    const url = `/search?query=${query}&from=${from}&to=${to}&fetchtable`;
+    loadcontent(url, "#results", "Loading search results...");
+
+    // update years button
+    $("[data-year]").each((i, el) => {
+      const year = el.getAttribute("data-year");
+      const href = `?from=${year}-01-01T00:00:00Z&to=${year}-12-31T23:59:59Z&query=${query}`;
+      el.setAttribute("href", href);
+    });
+    // update URL
+    const qs = new URLSearchParams(window.location.search);
+    qs.set("query", query);
+    window.history.replaceState("", "", `?${qs.toString()}`);
+
+    return false;
+  });
+</script>

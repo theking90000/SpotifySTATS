@@ -15,6 +15,7 @@ from flask_executor import Executor
 import tarfile
 import io
 import requests
+from flask_apscheduler import APScheduler
 
 
 app = Flask(__name__, static_folder='managed_web', template_folder='managed_web')
@@ -23,6 +24,10 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1000 * 1000
 executor = Executor(app)
 app.config['EXECUTOR_TYPE'] = 'thread'
 app.config['EXECUTOR_MAX_WORKERS'] = 1
+
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
 
 try:
     client = docker.from_env()
@@ -64,17 +69,22 @@ app.register_blueprint(api_server.app, url_prefix='/api')
 
 DATABASE = 'managed.db'
 
+def _get_db():
+    db  = sqlite3.connect(DATABASE)
+    # setup DB
+    db.executescript('''
+        CREATE TABLE IF NOT EXISTS users (id VARCHAR(100) PRIMARY KEY, last_online TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS instances (id TEXT PRIMARY KEY, user_id VARCHAR(100), container TEXT, container_ip TEXT, state TEXT, FOREIGN KEY(user_id) REFERENCES users(id));
+    ''')
+    db.execute('PRAGMA journal_mode=WAL')
+    db.commit()
+
+    return db
+
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-        # setup DB
-        db.executescript('''
-            CREATE TABLE IF NOT EXISTS users (id VARCHAR(100) PRIMARY KEY, last_online TIMESTAMP);
-            CREATE TABLE IF NOT EXISTS instances (id TEXT PRIMARY KEY, user_id VARCHAR(100), container TEXT, container_ip TEXT, state TEXT, FOREIGN KEY(user_id) REFERENCES users(id));
-        ''')
-        db.execute('PRAGMA journal_mode=WAL')
-        db.commit()
+        db = g._database = _get_db()
     return db
 
 @app.after_request
@@ -143,6 +153,10 @@ def index():
     if 'status' in request.args:
         return render_template('_state.html', container=container, state=state, container_id=c_id)
     
+    if 'delete' in request.args:
+        stop_instance(session['user'])
+        return redirect('/')
+
     wait = False
     if 'wait' in request.args:
         wait = True
@@ -173,8 +187,8 @@ def upload():
     
     return redirect('/?wait')
 
-def stop_instance(user_id):
-    db = get_db()
+def stop_instance(user_id, db=None):
+    db = get_db() if db is None else db
     c = db.cursor()
     c.execute('SELECT container FROM instances WHERE user_id = ?', (user_id,))
     res = c.fetchone()
@@ -298,6 +312,19 @@ def instance_proxy(id, path):
     response = Response(resp.content, status=resp.status_code, headers=dict(resp.headers))
     response.headers['X-Proxy-To'] = cid
     return response
+
+# Scheduled Task
+@scheduler.task('interval', id='remove_inactives', seconds=30)
+def remove_inactive():
+    print('Remove_inactives')
+    db = _get_db()
+    c = db.cursor()
+    c.execute('SELECT users.id FROM instances JOIN users ON instances.user_id = users.id WHERE last_online < datetime("now", "-30 minutes")')
+    res = c.fetchall()
+
+    for user, in res:
+        print('Removing', user)
+        stop_instance(user, db)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

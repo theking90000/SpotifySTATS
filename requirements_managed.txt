@@ -5,3 +5,4 @@ requests-oauthlib
 spotipy
 flask-executor
 requests
+Flask-APScheduler

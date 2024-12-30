@@ -71,6 +71,8 @@ def get_db():
             CREATE TABLE IF NOT EXISTS users (id VARCHAR(100) PRIMARY KEY, last_online TIMESTAMP);
             CREATE TABLE IF NOT EXISTS instances (id TEXT PRIMARY KEY, user_id VARCHAR(100), container TEXT, container_ip TEXT, state TEXT, FOREIGN KEY(user_id) REFERENCES users(id));
         ''')
+        db.execute('PRAGMA journal_mode=WAL')
+        db.commit()
     return db
 
 @app.after_request

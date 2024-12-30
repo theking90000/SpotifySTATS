@@ -86,6 +86,7 @@ def get_db():
         c=db.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS query (id TEXT PRIMARY KEY, response TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, expires DATETIME)")
         c.execute("CREATE UNIQUE INDEX IF NOT EXISTS query_id ON query (id)")
+        db.execute('PRAGMA journal_mode=WAL')
         db.commit()
     return db
 

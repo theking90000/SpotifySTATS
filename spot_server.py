@@ -1,9 +1,11 @@
 import sqlite3
-from flask import Flask, send_from_directory, render_template, g, request, url_for
+from flask import Flask, send_from_directory, render_template, g, request, Response
 import geoip2.database
 from datetime import datetime
 import uuid
-from os import environ
+from os import environ, path
+
+VERSION = "0.1.0-dev"
 
 DATABASE = 'streaming_history.db'
 COUNTRY = 'databases/GeoLite2-Country.mmdb'
@@ -13,7 +15,6 @@ app = Flask(__name__, static_folder='web', template_folder='web')
 app.config['APPLICATION_ROOT'] = environ.get('APPLICATION_ROOT', '/')
 BASE_URL = app.config['APPLICATION_ROOT'].rstrip('/')
 API_ENDPOINT= environ.get('API_ENDPOINT', BASE_URL+'/api')
-
 
 no_api = environ.get('SPOT_NO_API', False)
 if not no_api:
@@ -57,7 +58,7 @@ def close_connection(exception):
 def get_api_endpoint():
     return dict(api_endpoint=API_ENDPOINT,
                 generate_uuid=lambda: str(uuid.uuid4()),
-                base_url=BASE_URL)
+                base_url=BASE_URL, version=VERSION)
 
 def format_duration(duration, max_unit='d'):
     u, m = ['d', 'h', 'm', 's'], [86400, 3600, 60, 1]
@@ -379,6 +380,13 @@ def search():
     return render_template('index.html', content='_search.html', query=query,
                            years=years, year=is_year, f=f, t=t,
                            offset=offset, limit=limit)
+
+@app.route('/changelog')
+def changelog():
+    if not path.exists(path.join(app.template_folder, '_changelog.html')):
+        with open('changelog.md', 'r') as f:
+            return Response(f.read(), mimetype='text/plain')
+    return render_template('index.html', content='_changelog.html')
 
 if __name__ == '__main__':
     # Check if the no-api flag is set

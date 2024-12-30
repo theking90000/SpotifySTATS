@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY databases/ databases/
 
-RUN pip install --no-cache-dir gunicorn
+RUN pip install --no-cache-dir gunicorn markdown
 
 COPY requirements.txt .
 
@@ -15,6 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY import.py .
 
 COPY web/ web/
+
+COPY changelog.md .
+
+RUN python -m markdown changelog.md > web/_changelog.html
 
 COPY spot_server.py .
 

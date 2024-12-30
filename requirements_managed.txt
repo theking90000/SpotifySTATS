@@ -6,3 +6,4 @@ spotipy
 flask-executor
 requests
 Flask-APScheduler
+gunicorn

@@ -16,22 +16,22 @@
       {% for col in row %}
       <td>
         {% if col is mapping and 'track' in col %}
-        <a href="/track/{{ col.track }}">
+        <a href="{{ base_url }}/track/{{ col.track }}">
           <img
             height="32"
             width="32"
-            src="/res/loader.gif"
+            src="{{ base_url }}/res/loader.gif"
             alt="Loading..."
             data-cover="{{ col.track }}"
           />
           {{ col.name }}
         </a>
         {% elif col is mapping and 'artist' in col %}
-        <a href="/artist?from_track={{ col.artist }}">
+        <a href="{{ base_url }}/artist?from_track={{ col.artist }}">
           <img
             height="32"
             width="32"
-            src="/res/loader.gif"
+            src="{{ base_url }}/res/loader.gif"
             alt="Loading..."
             data-cover-artist="{{ col.artist }}"
           />{{ col.name }}</a

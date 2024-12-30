@@ -21,6 +21,8 @@ app = Flask(__name__, static_folder='managed_web', template_folder='managed_web'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1000 * 1000
 
 executor = Executor(app)
+app.config['EXECUTOR_TYPE'] = 'thread'
+app.config['EXECUTOR_MAX_WORKERS'] = 1
 
 try:
     client = docker.from_env()
@@ -131,17 +133,25 @@ def index():
         return render_template('index.html', content='_login.html')
     
     db = get_db()
-    # check if instance is running
     c = db.cursor()
     c.execute('SELECT id, container, state FROM instances WHERE user_id = ?', (session['user'],))
     res = c.fetchone() 
     c_id, container, state = None, None, None
     if res:
         c_id, container, state = res
-    print('Container:', container, state, c_id)
-    return render_template('index.html', content='_index.html', user=session['user'],
-                           container=container, state=state, container_id=c_id)
     
+    if 'status' in request.args:
+        return render_template('_state.html', container=container, state=state, container_id=c_id)
+    
+    wait = False
+    if 'wait' in request.args:
+        wait = True
+    
+    return render_template('index.html', content='_index.html', user=session['user'],
+                           container=container, state=state, container_id=c_id,
+                           wait=wait)
+
+
 @app.post('/upload')
 def upload():
     # get form data
@@ -155,12 +165,13 @@ def upload():
     if file.filename == '':
         return redirect(request.url)
 
-    start_instance(session['user'], file)
+    executor.submit(start_instance, session['user'], to_archive(file))
+    # start_instance(session['user'], file)
 
     db = get_db()
     c = db.cursor()
     
-    return redirect('/')
+    return redirect('/?wait')
 
 def stop_instance(user_id):
     db = get_db()
@@ -179,7 +190,25 @@ def stop_instance(user_id):
     except docker.errors.NotFound:
         pass
 
+def to_archive(datafile):
+    zip_bytes = io.BytesIO(datafile.stream.read())
+    b = io.BytesIO()
+    i=0
+    with tarfile.open(mode='w|', fileobj=b) as tar:
+        with zipfile.ZipFile(zip_bytes) as zf:
+            for name in zf.namelist():
+                ix = zf.getinfo(name)
+                if name.endswith('.json') and ix.file_size < 20 * 1000 * 1000:
+                    info = tarfile.TarInfo(name=f'{i}.json')
+                    i += 1
+                    info.size = ix.file_size
+                    file_bytes = zf.read(name)
+                    tar.addfile(info, io.BytesIO(file_bytes))
+    b.seek(0)
+    return b
+
 def start_instance(user_id, datafile):
+    print('Starting instance...')
     stop_instance(user_id)
     db = get_db()
     c = db.cursor()
@@ -202,8 +231,9 @@ def start_instance(user_id, datafile):
     db.commit()
 
     # add task
+    
     configure_instance(id, datafile)
-    #executor.submit(configure_instance, user_id, datafile)
+    # executor.submit(configure_instance, id, datafile)
 
 def set_state(id, state):
     db = get_db()
@@ -227,25 +257,9 @@ def configure_instance(id, datafile):
     
     # process the archive
     # we open the zip file and extract each json file (<20MB)
-
-    zip_bytes = io.BytesIO(datafile.stream.read())
     
-    b = io.BytesIO()
-    i=0
-    with tarfile.open(mode='w|', fileobj=b) as tar:
-        with zipfile.ZipFile(zip_bytes) as zf:
-            for name in zf.namelist():
-                
-                if name.endswith('.json'):
-                    info = tarfile.TarInfo(name=f'{i}.json')
-                    i += 1
-                    info.size = zf.getinfo(name).file_size
-                    file_bytes = zf.read(name)
-                    tar.addfile(info, io.BytesIO(file_bytes))
-    
-    b.seek(0)
     container.exec_run('mkdir -p /app/Spotify\ Extended\ Streaming\ History')
-    container.put_archive('/app/Spotify Extended Streaming History', b)
+    container.put_archive('/app/Spotify Extended Streaming History', datafile)
 
     set_state(id, 'importing')
     # import 

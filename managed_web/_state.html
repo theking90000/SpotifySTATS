@@ -1,0 +1,30 @@
+{% if not container_id %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+  <strong>No instance running</strong>
+  Please upload your spotify stats bundle to start a new instance.
+</div>
+{% endif %} {% if container and state == 'ready' %}
+<!-- state:ready -->
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <strong>Instance running</strong>
+  Your instance is running and ready to use.
+
+  <a href="/app/{{ container_id }}" class="btn btn-primary"
+    >Open Spotify Stats</a
+  >
+</div>
+{% elif container_id %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+  <img
+    src="/res/loader.gif"
+    width="32"
+    height="32"
+    alt="Loading..."
+    style="margin-right: 20px"
+  />
+  <strong>Instance being created</strong>
+  {%if state == 'init' %} Booting up your instance {% endif %} {%if state ==
+  'created' %} Copying your stats bundle {% endif %} {%if state == 'importing'
+  %} Importing your stats bundle {% endif %}
+</div>
+{% endif %}
